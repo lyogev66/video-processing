@@ -37,7 +37,7 @@ NumberOfFrames = min(NumberOfFramesStable, NumberOfFramesExtracted);
 % Width = size(dataBaseStable,1);%hVideoStable.Width;
 % Height = size(dataBaseStable,2);%hVideoStable.Height;
 
-[Width, Height,~]= size(dataBaseStable);%hVideoStable.Width;
+[Height,Width,~]= size(dataBaseStable{1});%hVideoStable.Width;
 
 
 % Resizing background due to the video size:
@@ -57,14 +57,15 @@ open(hVideoOut);
 h = waitbar(0,'Matting, Please Wait...');
 
 % Matting initialization:
-RefFrame = read(hVideoStable, 1);
-RefBinary = read(hVideoExtracted, 1);
+RefFrame = dataBaseStable{1};
+RefBinary = dataBaseExtracted{1};
 RefBinaryV = im2bw(RefBinary);
 
 % Sampling foreground and background for histogram calculation:
 [FGXIndices, FGYIndices] = find(RefBinaryV == 0); [BGXIndices, BGYIndices] = find(RefBinaryV == 1);
 [FGIndicesNum,~] = size(FGXIndices); [BGIndicesNum,~] = size(BGXIndices);
-NumOfSamples = min(floor(FGIndicesNum/50),floor(BGIndicesNum/50));
+% at least 1 sample
+NumOfSamples = max(min(floor(FGIndicesNum/50),floor(BGIndicesNum/50)),1);
 SamplesFG = randsample(1:FGIndicesNum,NumOfSamples); SamplesBG = randsample(1:BGIndicesNum,NumOfSamples);
 FG_Sampled_X_Indices = FGXIndices(SamplesFG); BG_Sampled_X_Indices = BGXIndices(SamplesBG); 
 FG_Sampled_Y_Indices = FGYIndices(SamplesFG); BG_Sampled_Y_Indices = BGYIndices(SamplesBG);
@@ -79,13 +80,13 @@ BGscribbleColors = RefVFrame(BG_Sampled_X_Indices, BG_Sampled_Y_Indices);
 [BG_Dens,~]=ksdensity(BGscribbleColors(:),PixelValues);
 
 % Iterating over the frames and matting the object and background
-for Frame=1:NumberOfFrames
+for FrameNumber=1:NumberOfFrames
     
     % Getting a new frame:
-    CurrFrameRGB = double(read(hVideoStable, Frame))/255;
+    CurrFrameRGB = double(dataBaseStable{FrameNumber})/255;
     CurrFrameHSV = rgb2hsv(CurrFrameRGB);
     CurrVFrame   = CurrFrameHSV(:,:,3);
-	CurrBinaryFrame = im2bw(read(hVideoExtracted, Frame));
+	CurrBinaryFrame = im2bw(dataBaseExtracted{FrameNumber});
 	
 	% Finding perimeter and widenning the object (narrow band):
 	NB = imdilate(bwperim(CurrBinaryFrame), strel('disk', WidthOfNarrowBand, 0));
@@ -109,7 +110,7 @@ for Frame=1:NumberOfFrames
     FG = cat(3,AlphaMap.*CurrFrameRGB(:,:,1),AlphaMap.*CurrFrameRGB(:,:,2),AlphaMap.*CurrFrameRGB(:,:,3)); 
     MattedFrame = BG + FG;
     writeVideo(hVideoOut, MattedFrame);
-    waitbar(Frame/NumberOfFrames);
+    waitbar(FrameNumber/NumberOfFrames);
 end
 
 close(hVideoOut);
