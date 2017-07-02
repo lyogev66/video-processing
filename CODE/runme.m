@@ -26,10 +26,11 @@ BackgroundSubstract(StableVid,Binary,ExtractedVid);
 close all; clc; clearvars;
 backgroundImage = 'background.jpg';
 StableVid = 'stabilized.avi';
-ExtractedVid = 'extracted.avi';
+BinaryVid = 'binary.avi';
 MattedVid = 'matted.avi';
 WidthOfNarrowBand = 3;
-Matting(StableVid, ExtractedVid, backgroundImage, MattedVid, WidthOfNarrowBand)
+
+Matting(StableVid, BinaryVid, backgroundImage, MattedVid, WidthOfNarrowBand)
 %%
 %%%%%%%%%%%PART 4: Tracking %%%%%%%%%%%%%%%
 close all; clc; clearvars;

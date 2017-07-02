@@ -1,119 +1,109 @@
-function Matting(StableVid, ExtractedVid, backgroundImage, Output, WidthOfNarrowBand)
-% Functionality:
-%   The function mats the object and the supplied background.
-% Arguments:
-%   Input                   -   The video after stabilization.
-%   InputBinary             -   Binary video after background subtraction.
-%   InputBackground         -   New background for the video. 
-%   Output                  -   Output file name (the matted video).
-%   WidthOfNarrowBand       -   Width for the narrow band.  
-% Output:
-%   The video after matting (combining the object and the new background) named 'matted.avi'.
-%   
-backgroundImage = 'background.jpg';
-StableVid = 'stabilized.avi';
-ExtractedVid = 'extracted.avi';
-Output = 'matted.avi';
-WidthOfNarrowBand = 3;
-SElement = strel('disk', WidthOfNarrowBand);
+function Matting(StableVid, BinaryVid, backgroundImage, MattedVid, WidthOfNarrowBand)
 
-% Creating I/O objects & Initializing parameters:
-InputBackground = sprintf( '../Input/%s', backgroundImage);
-InputFile = sprintf('../Output/%s', StableVid);
-InputBinaryFile = sprintf('../Output/%s', ExtractedVid);
+% default parameters
+% backgroundImage = 'background.jpg';
+% StableVid = 'stabilized.avi';
+% BinaryVid = 'binary.avi';
+% MattedVid = 'matted.avi';
+% WidthOfNarrowBand = 3;
 
-
-hVideoStable = VideoReader(InputFile);
-hVideoExtracted = VideoReader(InputBinaryFile);
-
-
+hVideoStable = VideoReader(sprintf('../Output/%s', StableVid));
+hVideoBinary = VideoReader(sprintf('../Output/%s', BinaryVid));
 ApproxNumberOfFrames = (hVideoStable.Duration*hVideoStable.FrameRate-1);
 
 
 [dataBaseStable,NumberOfFramesStable] = LoadDB(hVideoStable,ApproxNumberOfFrames);
-[dataBaseExtracted,NumberOfFramesExtracted] = LoadDB(hVideoExtracted,ApproxNumberOfFrames);
+[dataBaseBinary,NumberOfFramesExtracted] = LoadDB(hVideoBinary,ApproxNumberOfFrames);
 
 NumberOfFrames = min(NumberOfFramesStable, NumberOfFramesExtracted);
 [Height,Width,~]= size(dataBaseStable{1});
 
-
 % Resizing background due to the video size:
-BackgroundImage = imread(InputBackground);
-BackgroundImage = im2double(imresize(BackgroundImage, [Height Width]));
+Background = imread(sprintf( '../Input/%s', backgroundImage));
+Background = double(imresize(Background, [Height Width]));
+
+%creating Structuring element
+SElement = strel('disk', WidthOfNarrowBand);
 
 % opening output video
-hVideoOut = VideoWriter(sprintf( '../Output/%s', Output));
+hVideoOut = VideoWriter(sprintf( '../Output/%s', MattedVid));
 hVideoOut.Quality = 100;
 hVideoOut.FrameRate = hVideoStable.FrameRate;
 open(hVideoOut);
 
+h = waitbar(0, 'Matting, Please Wait...');
+for FrameCount=1:NumberOfFrames
+    waitbar(FrameCount/NumberOfFrames, h);
 
+    % Read current frame from Stable and Binary video
+    frame = dataBaseStable{FrameCount};
+    grayImg = rgb2gray(frame);
+    binImg = im2bw(dataBaseBinary{FrameCount});
 
-% Waitbar:
-h = waitbar(0,'Matting, Please Wait...');
+    %creating trimap
+    %Find perimeter of object in binary image widen it and make it as
+    %the trimap in the binary image ( i.e it will be an undecided zone)
+    perim = bwperim(binImg);
+    perim = imdilate(perim, SElement); 
+    trimap = double(binImg);
+    trimap(perim == 1) = 0.5; 
 
-% Matting initialization:
-RefFrame = dataBaseStable{1};
-RefBinary = dataBaseExtracted{1};
-RefBinaryV = 1-im2bw(RefBinary);
+    %Creating an outer and inner borders for the binary image
+    InnerBorder = (binImg - imerode(binImg,SElement));
+    OuterBorder = (imdilate(binImg,SElement) - binImg);       
+    trimap(OuterBorder == 1) = 0;
 
-% Sampling foreground and background for histogram calculation:
-[FGXIndices, FGYIndices] = find(RefBinaryV == 0); 
-[BGXIndices, BGYIndices] = find(RefBinaryV == 1);
-[FGIndicesNum,~] = size(FGXIndices); 
-[BGIndicesNum,~] = size(BGXIndices);
-% at least 1 sample
-NumOfSamples = max(min(floor(FGIndicesNum/50),floor(BGIndicesNum/50)),1);
-SamplesFG = randsample(1:FGIndicesNum,NumOfSamples); 
-SamplesBG = randsample(1:BGIndicesNum,NumOfSamples);
-FG_Sampled_X_Indices = FGXIndices(SamplesFG);
-FG_Sampled_Y_Indices = FGYIndices(SamplesFG);
-BG_Sampled_X_Indices = BGXIndices(SamplesBG); 
-BG_Sampled_Y_Indices = BGYIndices(SamplesBG);
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+    %Define 'scribbles' for FG and BG:
+    FG_Mask = (InnerBorder == 1);
+%         imshow(FG_Mask);
+    scribbles_FG = grayImg(FG_Mask);
 
-% Histogram calculation for foreground and background:
-PixelValues = 0:255;
-RefFrameHSV = rgb2hsv(RefFrame);
-RefVFrame = RefFrameHSV(:,:,3)*255;
-FGscribbleColors = RefVFrame(FG_Sampled_X_Indices,FG_Sampled_Y_Indices);
-[FG_Dens,~]=ksdensity(FGscribbleColors(:),PixelValues);
-BGscribbleColors = RefVFrame(BG_Sampled_X_Indices, BG_Sampled_Y_Indices);
-[BG_Dens,~]=ksdensity(BGscribbleColors(:),PixelValues);
+    BG_Mask = (OuterBorder == 1);
+%         imshow(BG_Mask);       
+    scribbles_BG = grayImg(BG_Mask);
 
-% Iterating over the frames and matting the object and background
-for FrameNumber=1:NumberOfFrames
-    
-    % Getting a new frame:
-    CurrFrameRGB = double(dataBaseStable{FrameNumber})/255;
-    CurrFrameHSV = rgb2hsv(CurrFrameRGB);
-    CurrVFrame   = CurrFrameHSV(:,:,3);
-	CurrBinaryFrame = 1-im2bw(dataBaseExtracted{FrameNumber});
-	
-	% Finding perimeter and widenning the object (narrow band):
-	NB = imdilate(bwperim(CurrBinaryFrame), SElement);
-	NB_VALUES = double(CurrVFrame).*double(NB);
+    %Estimate probability map using KDE function:
+    [~,Pr_C_FG,~,~] = kde(scribbles_FG, 256, 0, 255);
+    [~,Pr_C_BG,~,~] = kde(scribbles_BG, 256, 0, 255);
 
-	% Calculating likelihood:
-    NB_Indices = find(NB_VALUES == 0);
-	FG_P = FG_Dens(NB_VALUES*255+1);
-    BG_P = BG_Dens(NB_VALUES*255+1);
-	BG_Pf = double(BG_P./(FG_P+BG_P));
-	FG_Pf = double(FG_P./(FG_P+BG_P));
-    BG_Pf(NB_Indices) = 0;
-    FG_Pf(NB_Indices) = 0;
-    
-    % Calculating alpha map:
-    AlphaMap = FG_Pf./(FG_Pf+BG_Pf);
-    AlphaMap(isnan(AlphaMap)) = 1-CurrBinaryFrame(isnan(AlphaMap));
-    
-    % Building the combined frame:
-    BG = cat(3,(1-AlphaMap).*BackgroundImage(:,:,1),(1-AlphaMap).*BackgroundImage(:,:,2),(1-AlphaMap).*BackgroundImage(:,:,3)); 
-    FG = cat(3,AlphaMap.*CurrFrameRGB(:,:,1),AlphaMap.*CurrFrameRGB(:,:,2),AlphaMap.*CurrFrameRGB(:,:,3)); 
-    MattedFrame = BG + FG;
-    writeVideo(hVideoOut, MattedFrame);
-    waitbar(FrameNumber/NumberOfFrames);
+    %Calculate PDFs using Bayes equation:
+    i = grayImg+1;
+    Pr_FG = Pr_C_FG(i) ./ (Pr_C_FG(i) + Pr_C_BG(i));
+    Pr_BG = 1-Pr_FG;
+
+    %Calculate Gradient:
+    Grad_FG = imgradientxy(Pr_FG);
+    Grad_BG = imgradientxy(Pr_BG);
+
+    %Calculat the discrete weighted Geodesic distance:
+    Df = graydist(Grad_FG, FG_Mask); %computes the gray-weighted distance transform of the grayscale image
+    Db = graydist(Grad_BG, BG_Mask);
+    %imshow (Df);
+    %imshow (Db);
+
+    %%%%%%%%%%%%%%Step (2) - Refinement: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Wf = Pr_FG(i) ./ (Df(i) .^ WidthOfNarrowBand);
+    Wb = Pr_BG(i) ./ (Db(i) .^ WidthOfNarrowBand);
+
+    Alpha = Wf ./ (Wf + Wb);
+
+    %%%%%%%%%%%%%%Step (3) - T' generation: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    AlphaTrimap = double(trimap);
+%         imshow(Alpha);
+%         imshow(Alpha_Trimap);
+    AlphaTrimap(trimap == 0.5) = Alpha(trimap == 0.5);
+%         imshow(Alpha_Trimap);
+
+    % blending
+    AlphaColors = cat(3, AlphaTrimap, AlphaTrimap, AlphaTrimap);
+
+    Matted_Frame = AlphaColors .* double(frame) + (1-AlphaColors).* (Background);
+%         imshow( uint8(Matted_Frame));
+    writeVideo(hVideoOut, uint8(Matted_Frame));
 end
-
-close(hVideoOut);
 close(h);
+close(hVideoOut);
 end

@@ -10,7 +10,7 @@ close all; clc; clearvars;
 %%%%%%%%%%%PART 1: Video Stabilization %%%%%%%%%%%%%%%
 InputFile = 'INPUT.avi';
 StableVid = 'stabilized.avi';
-stablizerParam.MinContrast=0.3;
+% stablizerParam.MinContrast=0.3;
 stablizerParam.MinQuality=0.2;
 cropParam.facor = 0.3;
 Stabilize(InputFile,StableVid,stablizerParam,cropParam);
@@ -18,18 +18,25 @@ Stabilize(InputFile,StableVid,stablizerParam,cropParam);
 %%%%%%%%%%%PART 2: Background Subtraction %%%%%%%%%%%%%%%
 close all; clc; clearvars;
 StableVid = 'stabilized.avi';
-BackgroundSubstract(stableVid);
+Binary = 'binary.avi';
+ExtractedVid = 'extracted.avi';
+BackgroundSubstract(StableVid,Binary,ExtractedVid);
+%%
 %%%%%%%%%%%PART 3: Matting %%%%%%%%%%%%%%%
 close all; clc; clearvars;
-backgroundImage = '';
-Matting(backgroundImage,binaryVid,stableSubstructVid);
+% backgroundImage = 'background.jpg';
+% StableVid = 'stabilized.avi';
+% BinaryVid = 'binary.avi';
+% MattedVid = 'matted.avi';
+% Widt
+Matting(StableVid, ExtractedVid, backgroundImage, MattedVid, WidthOfNarrowBand)
 %%
 %%%%%%%%%%%PART 4: Tracking %%%%%%%%%%%%%%%
 close all; clc; clearvars;
-mattedVid = 'stabilized.avi';
-% mattedVid = 'matted.avi';
+MattedVid = 'matted.avi';
 outVid = 'output.avi';
 TrackParam.maxMovment = 3;
 TrackParam.Particals = 100;
+TrackParam.chooseRectFrame = 3;
 
-Tracker(mattedVid,outVid,TrackParam);
+Tracker(MattedVid,outVid,TrackParam);

@@ -42,15 +42,15 @@ dataBase = cell(3,ApproxNumberOfFrames);
 
 %load and crop
 wbar = waitbar(0,'Loading DataBase, Please Wait...');
-FrameNumber=1;
+FrameCount=1;
 while hasFrame(hVideoSrc)
-% for FrameNumber=1:NumberOfFrames
-    waitbar(FrameNumber/ApproxNumberOfFrames, wbar);
+% for FrameCount=1:NumberOfFrames
+    waitbar(FrameCount/ApproxNumberOfFrames, wbar);
     frame = readFrame(hVideoSrc);
-    dataBase{FrameNumber} = frame;
-    FrameNumber = FrameNumber+1;
+    dataBase{FrameCount} = frame;
+    FrameCount = FrameCount+1;
 end
-NumberOfFrames = min(FrameNumber-1,ApproxNumberOfFrames);
+NumberOfFrames = min(FrameCount-1,ApproxNumberOfFrames);
 close(wbar);
 end
 
@@ -66,9 +66,9 @@ Factor = cropParam.facor;
 xmin=Width*Factor;ymin=Height*Factor;
 cropRect=[xmin ymin Width Height];
 wbar = waitbar(0,'Croping Image, Please Wait...');
-for FrameNumber=1:NumberOfFrames
-    waitbar(FrameNumber/NumberOfFrames, wbar);
-    DBout{FrameNumber}=imcrop(dataBase{FrameNumber},cropRect);
+for FrameCount=1:NumberOfFrames
+    waitbar(FrameCount/NumberOfFrames, wbar);
+    DBout{FrameCount}=imcrop(dataBase{FrameCount},cropRect);
 end
 close(wbar);
 end
