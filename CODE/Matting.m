@@ -15,6 +15,7 @@ StableVid = 'stabilized.avi';
 ExtractedVid = 'extracted.avi';
 Output = 'matted.avi';
 WidthOfNarrowBand = 3;
+SElement = strel('disk', WidthOfNarrowBand);
 
 % Creating I/O objects & Initializing parameters:
 InputBackground = sprintf( '../Input/%s', backgroundImage);
@@ -33,17 +34,12 @@ ApproxNumberOfFrames = (hVideoStable.Duration*hVideoStable.FrameRate-1);
 [dataBaseExtracted,NumberOfFramesExtracted] = LoadDB(hVideoExtracted,ApproxNumberOfFrames);
 
 NumberOfFrames = min(NumberOfFramesStable, NumberOfFramesExtracted);
-
-% Width = size(dataBaseStable,1);%hVideoStable.Width;
-% Height = size(dataBaseStable,2);%hVideoStable.Height;
-
-[Height,Width,~]= size(dataBaseStable{1});%hVideoStable.Width;
+[Height,Width,~]= size(dataBaseStable{1});
 
 
 % Resizing background due to the video size:
 BackgroundImage = imread(InputBackground);
-BackgroundImage = imresize(BackgroundImage, [Height Width]);
-BackgroundImage = double(BackgroundImage)/255;
+BackgroundImage = im2double(imresize(BackgroundImage, [Height Width]));
 
 % opening output video
 hVideoOut = VideoWriter(sprintf( '../Output/%s', Output));
@@ -59,16 +55,21 @@ h = waitbar(0,'Matting, Please Wait...');
 % Matting initialization:
 RefFrame = dataBaseStable{1};
 RefBinary = dataBaseExtracted{1};
-RefBinaryV = im2bw(RefBinary);
+RefBinaryV = 1-im2bw(RefBinary);
 
 % Sampling foreground and background for histogram calculation:
-[FGXIndices, FGYIndices] = find(RefBinaryV == 0); [BGXIndices, BGYIndices] = find(RefBinaryV == 1);
-[FGIndicesNum,~] = size(FGXIndices); [BGIndicesNum,~] = size(BGXIndices);
+[FGXIndices, FGYIndices] = find(RefBinaryV == 0); 
+[BGXIndices, BGYIndices] = find(RefBinaryV == 1);
+[FGIndicesNum,~] = size(FGXIndices); 
+[BGIndicesNum,~] = size(BGXIndices);
 % at least 1 sample
 NumOfSamples = max(min(floor(FGIndicesNum/50),floor(BGIndicesNum/50)),1);
-SamplesFG = randsample(1:FGIndicesNum,NumOfSamples); SamplesBG = randsample(1:BGIndicesNum,NumOfSamples);
-FG_Sampled_X_Indices = FGXIndices(SamplesFG); BG_Sampled_X_Indices = BGXIndices(SamplesBG); 
-FG_Sampled_Y_Indices = FGYIndices(SamplesFG); BG_Sampled_Y_Indices = BGYIndices(SamplesBG);
+SamplesFG = randsample(1:FGIndicesNum,NumOfSamples); 
+SamplesBG = randsample(1:BGIndicesNum,NumOfSamples);
+FG_Sampled_X_Indices = FGXIndices(SamplesFG);
+FG_Sampled_Y_Indices = FGYIndices(SamplesFG);
+BG_Sampled_X_Indices = BGXIndices(SamplesBG); 
+BG_Sampled_Y_Indices = BGYIndices(SamplesBG);
 
 % Histogram calculation for foreground and background:
 PixelValues = 0:255;
@@ -86,10 +87,10 @@ for FrameNumber=1:NumberOfFrames
     CurrFrameRGB = double(dataBaseStable{FrameNumber})/255;
     CurrFrameHSV = rgb2hsv(CurrFrameRGB);
     CurrVFrame   = CurrFrameHSV(:,:,3);
-	CurrBinaryFrame = im2bw(dataBaseExtracted{FrameNumber});
+	CurrBinaryFrame = 1-im2bw(dataBaseExtracted{FrameNumber});
 	
 	% Finding perimeter and widenning the object (narrow band):
-	NB = imdilate(bwperim(CurrBinaryFrame), strel('disk', WidthOfNarrowBand, 0));
+	NB = imdilate(bwperim(CurrBinaryFrame), SElement);
 	NB_VALUES = double(CurrVFrame).*double(NB);
 
 	% Calculating likelihood:

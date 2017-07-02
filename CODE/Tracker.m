@@ -18,7 +18,7 @@ function Tracker(mattedfile,outfile,TrackParam)
 
 N = TrackParam.Particals;
 maxPixelMovment = TrackParam.maxMovment;
-
+chooseRectFrame = TrackParam.chooseRectFrame;
 
 %open video
 hVideoSrc = VideoReader(sprintf('../Output/%s',mattedfile));
@@ -35,10 +35,7 @@ open(hVideoOut);
 %load the Video and crop it
 [dataBase,NumberOfFrames] = LoadDB(hVideoSrc,ApproxNumberOfFrames);
 
-
-
-I = dataBase{1};
-
+I = dataBase{chooseRectFrame};
 
 % to select the object uncomment below
 figure; imshow(I);

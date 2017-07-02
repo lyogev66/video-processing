@@ -33,10 +33,10 @@ Matting(StableVid, ExtractedVid, backgroundImage, MattedVid, WidthOfNarrowBand)
 %%
 %%%%%%%%%%%PART 4: Tracking %%%%%%%%%%%%%%%
 close all; clc; clearvars;
-MattedVid = 'stabilized.avi';
-% mattedVid = 'matted.avi';
+MattedVid = 'matted.avi';
 outVid = 'output.avi';
 TrackParam.maxMovment = 3;
 TrackParam.Particals = 100;
+TrackParam.chooseRectFrame = 3;
 
 Tracker(MattedVid,outVid,TrackParam);
