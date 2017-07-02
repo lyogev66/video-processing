@@ -108,12 +108,12 @@ end
 
 
 function h =  myEstimateTransform(imgA,imgB,stablizerParam)
-    ptConstThresh = stablizerParam.MinContrast;
+%     ptConstThresh = stablizerParam.MinContrast;
     ptQualThresh = stablizerParam.MinQuality;
     
     %using detectMinEigenFeatures to detect features
-    pointsA = detectMinEigenFeatures(imgA, 'MinContrast', ptConstThresh,'MinQuality',ptQualThresh);
-    pointsB = detectMinEigenFeatures(imgB, 'MinContrast', ptConstThresh,'MinQuality',ptQualThresh);    
+    pointsA = detectMinEigenFeatures(imgA,'MinQuality',ptQualThresh);
+    pointsB = detectMinEigenFeatures(imgB,'MinQuality',ptQualThresh);    
 %     pointsA = detectFASTFeatures(imgA, 'MinContrast', ptConstThresh,'MinQuality',ptQualThresh);
 %     pointsB = detectFASTFeatures(imgB, 'MinContrast', ptConstThresh,'MinQuality',ptQualThresh);
 

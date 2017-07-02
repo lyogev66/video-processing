@@ -10,11 +10,11 @@ function Matting(StableVid, ExtractedVid, backgroundImage, Output, WidthOfNarrow
 % Output:
 %   The video after matting (combining the object and the new background) named 'matted.avi'.
 %   
-backgroundImage = 'background.jpg';
-StableVid = 'stabilized.avi';
-ExtractedVid = 'extracted.avi';
-Output = 'matted.avi';
-WidthOfNarrowBand = 3;
+% backgroundImage = 'background.jpg';
+% StableVid = 'stabilized.avi';
+% ExtractedVid = 'extracted.avi';
+% Output = 'matted.avi';
+% WidthOfNarrowBand = 3;
 
 % Creating I/O objects & Initializing parameters:
 InputBackground = sprintf( '../Input/%s', backgroundImage);
@@ -29,17 +29,13 @@ hVideoExtracted = VideoReader(InputBinaryFile);
 ApproxNumberOfFrames = (hVideoStable.Duration*hVideoStable.FrameRate-1);
 
 
-[dataBaseStable,NumberOfFramesStable] = LoadDB(hVideoStable,ApproxNumberOfFrames);
-[dataBaseExtracted,NumberOfFramesExtracted] = LoadDB(hVideoExtracted,ApproxNumberOfFrames);
-
-NumberOfFrames = min(NumberOfFramesStable, NumberOfFramesExtracted);
-
-% Width = size(dataBaseStable,1);%hVideoStable.Width;
-% Height = size(dataBaseStable,2);%hVideoStable.Height;
-
-[Width, Height,~]= size(dataBaseStable);%hVideoStable.Width;
+[dataBaseStable,NumberOfFrames] = LoadDB(hVideoStable,ApproxNumberOfFrames);
+[dataBaseStable,NumberOfFrames] = LoadDB(hVideoExtracted,ApproxNumberOfFrames);
 
 
+Frames = hVideoStable.NumberOfFrames;
+Width = hVideoStable.Width;
+Height = hVideoStable.Height;
 % Resizing background due to the video size:
 BackgroundImage = imread(InputBackground);
 BackgroundImage = imresize(BackgroundImage, [Height Width]);
@@ -79,7 +75,7 @@ BGscribbleColors = RefVFrame(BG_Sampled_X_Indices, BG_Sampled_Y_Indices);
 [BG_Dens,~]=ksdensity(BGscribbleColors(:),PixelValues);
 
 % Iterating over the frames and matting the object and background
-for Frame=1:NumberOfFrames
+for Frame=1:Frames
     
     % Getting a new frame:
     CurrFrameRGB = double(read(hVideoStable, Frame))/255;
@@ -109,7 +105,7 @@ for Frame=1:NumberOfFrames
     FG = cat(3,AlphaMap.*CurrFrameRGB(:,:,1),AlphaMap.*CurrFrameRGB(:,:,2),AlphaMap.*CurrFrameRGB(:,:,3)); 
     MattedFrame = BG + FG;
     writeVideo(hVideoOut, MattedFrame);
-    waitbar(Frame/NumberOfFrames);
+    waitbar(Frame/Frames);
 end
 
 close(hVideoOut);

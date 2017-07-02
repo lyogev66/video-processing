@@ -16,17 +16,20 @@ cropParam.facor = 0.3;
 Stabilize(InputFile,StableVid,stablizerParam,cropParam);
 %%
 %%%%%%%%%%%PART 2: Background Subtraction %%%%%%%%%%%%%%%
-
+close all; clc; clearvars;
 StableVid = 'stabilized.avi';
 BackgroundSubstract(stableVid);
 %%%%%%%%%%%PART 3: Matting %%%%%%%%%%%%%%%
+close all; clc; clearvars;
 backgroundImage = '';
 Matting(backgroundImage,binaryVid,stableSubstructVid);
 %%
 %%%%%%%%%%%PART 4: Tracking %%%%%%%%%%%%%%%
+close all; clc; clearvars;
 mattedVid = 'stabilized.avi';
 % mattedVid = 'matted.avi';
 outVid = 'output.avi';
-TrackParam.maxMovment =3;
-TrackParam.N;
-Tracker(mattedVid,outVid);
+TrackParam.maxMovment = 3;
+TrackParam.Particals = 100;
+
+Tracker(mattedVid,outVid,TrackParam);

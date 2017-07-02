@@ -59,7 +59,7 @@ s_initial = [ x_center  % x center
     half_height     % half height
     0      % velocity x
     0   ]; % velocity y
-DBout=cell(size(dataBase));
+DBout = cell(size(dataBase));
 
 
 % CREATE INITIAL PARTICLE MATRIX 'S' (SIZE 6xN)
