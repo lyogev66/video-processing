@@ -13,7 +13,7 @@ InputFile = 'INPUT.avi';
 StableVid = 'stabilized.avi';
 % the maximal distance between two points - for more jittery video use
 % higher value
-stablizerParam.MaxDistance = 3;
+stablizerParam.MaxDistance = 5;
 stablizerParam.MinQuality = 0.2;
 stablizerParam.MinContrast = 0.1;
 % precentage from video borders to crop [0-1]-> 10% -100%
@@ -41,7 +41,7 @@ Matting(StableVid, BinaryVid, backgroundImage, MattedVid, WidthOfNarrowBand)
 close all; clc; clearvars;
 MattedVid = 'matted.avi';
 outVid = 'output.avi';
-TrackParam.maxMovment = 3;
+TrackParam.maxMovment = 30;
 TrackParam.Particals = 100;
 %is by any chance the object does not apper at the first frame choose the
 %first frame that the object appears in

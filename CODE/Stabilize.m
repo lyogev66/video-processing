@@ -20,14 +20,13 @@ hVideoOut.Quality = 100;
 hVideoOut.FrameRate = hVideoSrc.FrameRate;
 open(hVideoOut);
 
-%load the Video and crop it
+%load the Video
 [dataBase,NumberOfFrames] = LoadDB(hVideoSrc,ApproxNumberOfFrames);
-% dataBase=LoadAndCrop(hVideoSrc,NumberOfFrames,sizeReduceFactor);
-dataBase = CropDB(dataBase,cropParam);
 DBout = Stablizing(dataBase,NumberOfFrames,stablizerParam);
+DBout = CropDB(DBout,cropParam);
 WriteVideoFromDB(DBout,hVideoOut,NumberOfFrames)
 hVideoOut.close()
-
+disp('Finished stabilization.');
 
 end
 

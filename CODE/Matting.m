@@ -1,11 +1,11 @@
 function Matting(StableVid, BinaryVid, backgroundImage, MattedVid, WidthOfNarrowBand)
 
 % default parameters
-backgroundImage = 'background.jpg';
-StableVid = 'stabilized.avi';
-BinaryVid = 'binary.avi';
-MattedVid = 'matted.avi';
-WidthOfNarrowBand = 1;
+% backgroundImage = 'background.jpg';
+% StableVid = 'stabilized.avi';
+% BinaryVid = 'binary.avi';
+% MattedVid = 'matted.avi';
+% WidthOfNarrowBand = 1;
 
 hVideoStable = VideoReader(sprintf('../Output/%s', StableVid));
 hVideoBinary = VideoReader(sprintf('../Output/%s', BinaryVid));
@@ -101,7 +101,7 @@ for FrameCount=1:NumberOfFrames
     AlphaColors = cat(3, AlphaTrimap, AlphaTrimap, AlphaTrimap);
     FGFrame = uint8(AlphaColors .* double(frame));
     BGFrame = uint8((1-AlphaColors).* (Background));
-    imshowpair(BGFrame,FGFrame,'blend')
+%     imshowpair(BGFrame,FGFrame,'blend')
     Matted_Frame = FGFrame + BGFrame;
 %     imshow (Matted_Frame)
 %         imshow( uint8(Matted_Frame));
