@@ -1,11 +1,11 @@
 function Matting(StableVid, BinaryVid, backgroundImage, MattedVid, WidthOfNarrowBand)
 
 % default parameters
-% backgroundImage = 'background.jpg';
-% StableVid = 'stabilized.avi';
-% BinaryVid = 'binary.avi';
-% MattedVid = 'matted.avi';
-% WidthOfNarrowBand = 1;
+backgroundImage = 'background.jpg';
+StableVid = 'stabilized.avi';
+BinaryVid = 'binary.avi';
+MattedVid = 'matted.avi';
+WidthOfNarrowBand = 1;
 
 hVideoStable = VideoReader(sprintf('../Output/%s', StableVid));
 hVideoBinary = VideoReader(sprintf('../Output/%s', BinaryVid));
@@ -79,14 +79,16 @@ for FrameCount=1:NumberOfFrames
     %Calculat the discrete weighted Geodesic distance:
     Df = graydist(Grad_FG, FG_Mask); %computes the gray-weighted distance transform of the grayscale image
     Db = graydist(Grad_BG, BG_Mask);
-    %imshow (Df);
-    %imshow (Db);
+%     imshow (Df);
+%     imshow (Db);
 
     %%%%%%%%%%%%%%Step (2) - Refinement: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+    
     Wf = Pr_FG(i) ./ (Df(i) .^ WidthOfNarrowBand);
     Wb = Pr_BG(i) ./ (Db(i) .^ WidthOfNarrowBand);
-
+%     imshow(Wf,[])
+%     imshow(Wb,[])
     Alpha = Wf ./ (Wf + Wb);
 
     %%%%%%%%%%%%%%Step (3) - T' generation: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%

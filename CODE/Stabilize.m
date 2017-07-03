@@ -89,8 +89,8 @@ DBout = cell(3,NumberOfFrames);
         imgPrev = imgCurr;
         imgCurr = rgb2gray(dataBase{FrameCount}); % Read frame into imgB
         H = myEstimateTransform(imgPrev,imgCurr,stablizerParam); 
-        HsRt = TformToSRT(H);
-        Hcumulative = HsRt.T * Hcumulative;      
+        HSRT = TformToSRT(H);
+        Hcumulative = HSRT.T * Hcumulative;      
         imgBp = imwarp((dataBase{FrameCount}),affine2d(Hcumulative),'OutputView',imref2d(size(imgCurr))) ;    
         DBout{FrameCount} = imgBp;  
 %         imshow(imgBp)
@@ -100,11 +100,7 @@ DBout = cell(3,NumberOfFrames);
 % end
 end
 
-
 %%
-
-
-
 function h =  myEstimateTransform(imgA,imgB,stablizerParam)
 
     %using detectMinEigenFeatures to detect features
@@ -123,25 +119,21 @@ function h =  myEstimateTransform(imgA,imgB,stablizerParam)
     indexPairs = matchFeatures(featuresA, featuresB);
     pointsA = pointsA(indexPairs(:, 1), :);
     pointsB = pointsB(indexPairs(:, 2), :);
-    [tform, pointsBm, pointsAm] = estimateGeometricTransform(...
+    [tform, ~, ~] = estimateGeometricTransform(...
     pointsB, pointsA, 'similarity','MaxNumTrials',2000,'MaxDistance',MaxDistance);
-%     [tform, pointsBm, pointsAm] = estimateGeometricTransform(...
-%     pointsB, pointsA, 'similarity');
     h = tform.T;
 end
 %%
-function tformsRT=TformToSRT(H)
+function tformSRT=TformToSRT(H)
     R = H(1:2,1:2);
     % Compute theta from mean of two possible arctangents
-    theta = mean([atan2(R(2),R(1)) atan2(-R(3),R(4))]);
+    ang = mean([atan2(R(2),R(1)) atan2(-R(3),R(4))]);
     % Compute scale from mean of two stable mean calculations
-    scale = mean(R([1 4])/cos(theta));
+    scale = mean(R([1 4])/cos(ang));
     % Translation remains the same:
     translation = H(3, 1:2);
     % Reconstitute new s-R-t transform:
-    HsRt = [[scale*[cos(theta) -sin(theta); sin(theta) cos(theta)]; ...
+    hSRT = [[scale*[cos(ang) -sin(ang); sin(ang) cos(ang)]; ...
       translation], [0 0 1]'];
-    tformsRT = affine2d(HsRt);
+    tformSRT = affine2d(hSRT);
 end
-
-%%

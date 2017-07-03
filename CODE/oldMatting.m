@@ -55,11 +55,11 @@ h = waitbar(0,'Matting, Please Wait...');
 % Matting initialization:
 RefFrame = dataBaseStable{1};
 RefBinary = dataBaseExtracted{1};
-RefBinaryV = 1-im2bw(RefBinary);
+RefBinaryV = imbinarize(rgb2gray(RefBinary));
 
 % Sampling foreground and background for histogram calculation:
-[FGXIndices, FGYIndices] = find(RefBinaryV == 0); 
-[BGXIndices, BGYIndices] = find(RefBinaryV == 1);
+[FGXIndices, FGYIndices] = find(RefBinaryV == 1); 
+[BGXIndices, BGYIndices] = find(RefBinaryV == 0);
 [FGIndicesNum,~] = size(FGXIndices); 
 [BGIndicesNum,~] = size(BGXIndices);
 % at least 1 sample
@@ -87,14 +87,14 @@ for FrameNumber=1:NumberOfFrames
     CurrFrameRGB = double(dataBaseStable{FrameNumber})/255;
     CurrFrameHSV = rgb2hsv(CurrFrameRGB);
     CurrVFrame   = CurrFrameHSV(:,:,3);
-	CurrBinaryFrame = 1-im2bw(dataBaseExtracted{FrameNumber});
+	CurrBinaryFrame = imbinarize(rgb2gray(dataBaseExtracted{FrameNumber}));
 	
 	% Finding perimeter and widenning the object (narrow band):
-	NB = imdilate(bwperim(CurrBinaryFrame), SElement);
+	NB = imdilate(bwperim(imfill(CurrBinaryFrame,'holes')), SElement);
 	NB_VALUES = double(CurrVFrame).*double(NB);
-
+    imshow(NB)
 	% Calculating likelihood:
-    NB_Indices = find(NB_VALUES == 0);
+    NB_Indices = find(NB_VALUES == 1);
 	FG_P = FG_Dens(NB_VALUES*255+1);
     BG_P = BG_Dens(NB_VALUES*255+1);
 	BG_Pf = double(BG_P./(FG_P+BG_P));
@@ -105,13 +105,14 @@ for FrameNumber=1:NumberOfFrames
     % Calculating alpha map:
     AlphaMap = FG_Pf./(FG_Pf+BG_Pf);
     AlphaMap(isnan(AlphaMap)) = 1-CurrBinaryFrame(isnan(AlphaMap));
-    
+
     % Building the combined frame:
     BG = cat(3,(1-AlphaMap).*BackgroundImage(:,:,1),(1-AlphaMap).*BackgroundImage(:,:,2),(1-AlphaMap).*BackgroundImage(:,:,3)); 
     FG = cat(3,AlphaMap.*CurrFrameRGB(:,:,1),AlphaMap.*CurrFrameRGB(:,:,2),AlphaMap.*CurrFrameRGB(:,:,3)); 
     MattedFrame = BG + FG;
     writeVideo(hVideoOut, MattedFrame);
     waitbar(FrameNumber/NumberOfFrames);
+    imshow(MattedFrame)
 end
 
 close(hVideoOut);
