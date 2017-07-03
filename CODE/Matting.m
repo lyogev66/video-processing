@@ -1,114 +1,136 @@
-function Matting(StableVid, BinaryVid, backgroundImage, MattedVid, WidthOfNarrowBand)
+function Matting(StableVid, ExtractedVid, backgroundImage, Output, WidthOfNarrowBand)
+% Functionality:
+%   The function mats the object and the supplied background.
+% Arguments:
+%   Input                   -   The video after stabilization.
+%   InputBinary             -   Binary video after background subtraction.
+%   InputBackground         -   New background for the video. 
+%   Output                  -   Output file name (the matted video).
+%   WidthOfNarrowBand       -   Width for the narrow band.  
+% Output:
+%   The video after matting (combining the object and the new background) named 'matted.avi'.
+%   
+% backgroundImage = 'background.jpg';
+% StableVid = 'stabilized.avi';
+% ExtractedVid = 'binary.avi';
+% Output = 'matted.avi';
+% WidthOfNarrowBand = 3;
+SElement = strel('disk', WidthOfNarrowBand);
+factor = 1; %addtional factor for background vs foreground
 
-% default parameters
-backgroundImage = 'background.jpg';
-StableVid = 'stabilized.avi';
-BinaryVid = 'binary.avi';
-MattedVid = 'matted.avi';
-WidthOfNarrowBand = 1;
+% Creating I/O objects & Initializing parameters:
+InputBackground = sprintf( '../Input/%s', backgroundImage);
+InputFile = sprintf('../Output/%s', StableVid);
+InputBinaryFile = sprintf('../Output/%s', ExtractedVid);
 
-hVideoStable = VideoReader(sprintf('../Output/%s', StableVid));
-hVideoBinary = VideoReader(sprintf('../Output/%s', BinaryVid));
+
+hVideoStable = VideoReader(InputFile);
+hVideoExtracted = VideoReader(InputBinaryFile);
+
 ApproxNumberOfFrames = (hVideoStable.Duration*hVideoStable.FrameRate-1);
 
 
 [dataBaseStable,NumberOfFramesStable] = LoadDB(hVideoStable,ApproxNumberOfFrames);
-[dataBaseBinary,NumberOfFramesExtracted] = LoadDB(hVideoBinary,ApproxNumberOfFrames);
+[dataBaseExtracted,NumberOfFramesExtracted] = LoadDB(hVideoExtracted,ApproxNumberOfFrames);
 
 NumberOfFrames = min(NumberOfFramesStable, NumberOfFramesExtracted);
 [Height,Width,~]= size(dataBaseStable{1});
 
-% Resizing background due to the video size:
-Background = imread(sprintf( '../Input/%s', backgroundImage));
-Background = double(imresize(Background, [Height Width]));
 
-%creating Structuring element
-SElement = strel('disk', WidthOfNarrowBand);
+% Resizing background due to the video size:
+BackgroundImage = imread(InputBackground);
+BackgroundImage = im2double(imresize(BackgroundImage, [Height Width]));
 
 % opening output video
-hVideoOut = VideoWriter(sprintf( '../Output/%s', MattedVid));
+hVideoOut = VideoWriter(sprintf( '../Output/%s', Output));
 hVideoOut.Quality = 100;
 hVideoOut.FrameRate = hVideoStable.FrameRate;
 open(hVideoOut);
 
+% starting algorithm
+
 h = waitbar(0, 'Matting, Please Wait...');
 for FrameCount=1:NumberOfFrames
     waitbar(FrameCount/NumberOfFrames, h);
+    % Getting a new frame:
+    CurrFrameRGB = (dataBaseStable{FrameCount});
+    CurrFrameGray = uint8(rgb2gray(CurrFrameRGB));
+    CurrFrameRGB = im2double(CurrFrameRGB);
+	CurrBinaryFrame = imbinarize(rgb2gray(dataBaseExtracted{FrameCount}));
+	BinImage = imfill(CurrBinaryFrame,'holes');
 
-    % Read current frame from Stable and Binary video
-    frame = dataBaseStable{FrameCount};
-    grayImg = rgb2gray(frame);
-    binImg = im2bw(dataBaseBinary{FrameCount});
+%     InsideIndicator = (BinImage==1);
+%     OutsideIndicator = (BinImage~=1) ;
 
-    %creating trimap
-    %Find perimeter of object in binary image widen it and make it as
-    %the trimap in the binary image ( i.e it will be an undecided zone)
-    perim = bwperim(binImg);
-    perim = imdilate(perim, SElement); 
-    trimap = double(binImg);
-    trimap(perim == 1) = 0.5; 
-
-    %Creating an outer and inner borders for the binary image
-    InnerBorder = (binImg - imerode(binImg,SElement));
-    OuterBorder = (imdilate(binImg,SElement) - binImg);       
-    trimap(OuterBorder == 1) = 0;
-
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
-    %Define 'scribbles' for FG and BG:
-    FG_Mask = (InnerBorder == 1);
-%         imshow(FG_Mask);
-    scribbles_FG = grayImg(FG_Mask);
-
-    BG_Mask = (OuterBorder == 1);
-%         imshow(BG_Mask);       
-    scribbles_BG = grayImg(BG_Mask);
-
-    %Estimate probability map using KDE function:
-    [~,Pr_C_FG,~,~] = kde(scribbles_FG, 256, 0, 255);
-    [~,Pr_C_BG,~,~] = kde(scribbles_BG, 256, 0, 255);
-
-    %Calculate PDFs using Bayes equation:
-    i = grayImg+1;
-    Pr_FG = Pr_C_FG(i) ./ (Pr_C_FG(i) + Pr_C_BG(i));
-    Pr_BG = 1-Pr_FG;
-
-    %Calculate Gradient:
-    Grad_FG = imgradientxy(Pr_FG);
-    Grad_BG = imgradientxy(Pr_BG);
-
-    %Calculat the discrete weighted Geodesic distance:
-    Df = graydist(Grad_FG, FG_Mask); %computes the gray-weighted distance transform of the grayscale image
-    Db = graydist(Grad_BG, BG_Mask);
-%     imshow (Df);
-%     imshow (Db);
-
-    %%%%%%%%%%%%%%Step (2) - Refinement: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+    Perimiter = bwperim(BinImage==1);
+    PerimiterDilated = double(imdilate(Perimiter, SElement));
+    trimap = double(BinImage); trimap(PerimiterDilated==1) =0.5;
     
-    Wf = Pr_FG(i) ./ (Df(i) .^ WidthOfNarrowBand);
-    Wb = Pr_BG(i) ./ (Db(i) .^ WidthOfNarrowBand);
+    InsideBordrer = BinImage - imerode(BinImage,SElement);
+%     ;InsideBordrer(imerode(Outside,SElement)==1) = 0;InsideBordrer(Perimiter==1) = 0.5;
+    OutsideBorder = imdilate(BinImage,SElement) - BinImage;
+%     PerimiterDilated;OutsideBorder(imerode(Inside,SElement)==1) = 0;OutsideBorder(Perimiter==1) = 0.5;
+%     imshowpair(InsideBordrer,OutsideBorder,'montage')
+    
+    % getting the value of the inside and outside pixels and calculating
+    % their KDE
+    InsideValues = CurrFrameGray(InsideBordrer==1);
+    OutsideValues = CurrFrameGray(OutsideBorder==1);
+    
+    % getting a mapping of 256 bins to convert the values later on
+    [~,ProbMapIn,~,~] = kde(InsideValues,256,0,255);
+    [~,ProbMapOut,~,~] = kde(OutsideValues,256,0,255);
+    
+
+    %using the values of each pixel inside the probability function and
+    %adding 1 to get all values to at least 1 ( to get Prob(x))
+    x = (CurrFrameGray)+1 ; 
+    %Calculate PDF for Foreground using Bayes Rule
+    PdfFg = ProbMapIn(x) ./ (ProbMapIn(x) + ProbMapOut(x));
+    % the Background PDF
+    PdfBg = 1-PdfFg;
+
+%     imshowpair(PdfFg,PdfBg,'montage')
+    
+
+    %Calculat the discrete weighted Geodesic distance
+    Df = graydist(imgradientxy(PdfFg), InsideBordrer==1); 
+    Db = graydist(imgradientxy(PdfBg), OutsideBorder==1);
+    
+%     imshow(Df,[])
+%     imshow(Db,[])   
+    r = 2;  % r in [0-2] according to Alex lecture
+    Wf = PdfFg(x) ./ (Df(x).^r) ;
+    Wb = PdfBg(x) ./(Db(x).^r);
 %     imshow(Wf,[])
 %     imshow(Wb,[])
-    Alpha = Wf ./ (Wf + Wb);
-
-    %%%%%%%%%%%%%%Step (3) - T' generation: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    AlphaTrimap = double(trimap);
-%         imshow(Alpha);
-%         imshow(Alpha_Trimap);
-    AlphaTrimap(trimap == 0.5) = Alpha(trimap == 0.5);
-%         imshow(Alpha_Trimap);
+    
+    alpha = (factor*Wf./(factor*Wf+Wb));
+%     imshow(alpha)
+    % merging the backgound and the frame
+    trimap(trimap == 0.5) = alpha(trimap == 0.5);
+%     imshow(trimap);
 
     % blending
-    AlphaColors = cat(3, AlphaTrimap, AlphaTrimap, AlphaTrimap);
-    FGFrame = uint8(AlphaColors .* double(frame));
-    BGFrame = uint8((1-AlphaColors).* (Background));
+    
+
+    FrameFg = zeros(size(CurrFrameRGB));
+    FrameBg = zeros(size(BackgroundImage));
+    for channel=1:3
+        FrameFg(:,:,channel) = trimap.* CurrFrameRGB(:,:,channel);
+        FrameBg(:,:,channel) = (1-trimap).* (BackgroundImage(:,:,channel));
+    end
+        
+
 %     imshowpair(BGFrame,FGFrame,'blend')
-    Matted_Frame = FGFrame + BGFrame;
-%     imshow (Matted_Frame)
-%         imshow( uint8(Matted_Frame));
-    writeVideo(hVideoOut, Matted_Frame);
+    % fixing value overflow
+    MattedFrame = FrameFg + FrameBg;
+    MattedFrame(MattedFrame>1)=1;MattedFrame(MattedFrame<0)=0;
+
+    writeVideo(hVideoOut, MattedFrame);
+%     imshow(MattedFrame)
 end
-close(h);
+
 close(hVideoOut);
+close(h);
 end

@@ -5,16 +5,19 @@ function Tracker(mattedfile,outfile,TrackParam)
 % using compBatDist, compNormHist, predictParticles,sampleParticles
 % and showParticles to track  (other function for video parsing)
 
-
-%%manutal operation 
-% mattedfile = 'matted.avi';
-% outfile = 'output.avi';
+% %%manutal operation 
+mattedfile = 'matted.avi';
+outfile = 'output.avi';
 % 
 % % SET NUMBER OF PARTICLES
-% N = 100;
-% maxPixelMovment=30;
+TrackParam.maxMovment = 30;
+TrackParam.Particals = 100;
+TrackParam.chooseRectFrame = 3;
 % initial Position
-% position = [100.0000  156.0000   29.0000   93.0000];
+% position = [106.0000  188.0000   28.0000   75.0000];
+% manualSelect=false;
+% or
+manualSelect=true;
 
 N = TrackParam.Particals;
 maxPixelMovment = TrackParam.maxMovment;
@@ -38,12 +41,13 @@ open(hVideoOut);
 I = dataBase{chooseRectFrame};
 
 % to select the object uncomment below
-figure; imshow(I);
-title('select rectangle object to track and double click')
-h = imrect;
-position = wait(h);
-close
-
+if manualSelect
+    figure; imshow(I);
+    title('select rectangle object to track and double click')
+    h = imrect;
+    position = wait(h);
+    close
+end
 %%%images
 half_width = round(position(3)/2);
 half_height = round(position(4)/2);
@@ -60,7 +64,7 @@ DBout = cell(size(dataBase));
 
 
 % CREATE INITIAL PARTICLE MATRIX 'S' (SIZE 6xN)
-S = predictParticles(repmat(s_initial, 1, N),maxPixelMovment);
+S = predictParticles(repmat(s_initial, 1, N),maxPixelMovment,size(I));
 
 % COMPUTE NORMALIZED HISTOGRAM
 q = compNormHist(I,s_initial);
@@ -94,8 +98,11 @@ for FrameNumber=2:NumberOfFrames
     S_next_tag = sampleParticles(S_prev,C);
     
     % PREDICT THE NEXT PARTICLE FILTERS (YOU MAY ADD NOISE
-    S_next = predictParticles(S_next_tag,maxPixelMovment);
-    
+    S_next = predictParticles(S_next_tag,maxPixelMovment,size(I));
+    if find(S_next(3,:)~=half_width)
+        S_next(3,S_next(3,:)~=half_width) = half_width;
+    end
+        
     % COMPUTE NORMALIZED WEIGHTS (W) AND PREDICTOR CDFS (C)
     W=zeros(N,1);
     for partical=1:N
@@ -111,10 +118,9 @@ for FrameNumber=2:NumberOfFrames
     
     % SAMPLE NEW PARTICLES FROM THE NEW CDF'S
     S = sampleParticles(S_next,C);
-    
+
     % export to video
     DBout{FrameNumber-1} = showParticles(I,S,W);
-
 end
 close(wbar);
 WriteVideoFromDB(DBout,hVideoOut,NumberOfFrames);

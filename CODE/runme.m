@@ -29,11 +29,19 @@ BackgroundSubstract(StableVid,Binary,ExtractedVid);
 %%
 %%%%%%%%%%% PART 3: Matting %%%%%%%%%%%%%%%
 close all; clc; clearvars;
+% backgroundImage = 'background.jpg';
+% StableVid = 'stabilized.avi';
+% BinaryVid = 'binary.avi';
+% MattedVid = 'matted.avi';
+% WidthOfNarrowBand = 3;
+
 backgroundImage = 'background.jpg';
 StableVid = 'stabilized.avi';
 BinaryVid = 'binary.avi';
 MattedVid = 'matted.avi';
 WidthOfNarrowBand = 3;
+factor = 1; %addtional factor for background vs foreground
+
 
 Matting(StableVid, BinaryVid, backgroundImage, MattedVid, WidthOfNarrowBand)
 %%

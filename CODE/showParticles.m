@@ -20,6 +20,7 @@ if ~isempty(AvgPartical)
 %     imgOut = insertShape(imgOut,'Rectangle',redRect,'Color','red');
 else
     imgOut = I;
+end
 
 end
 
