@@ -4,25 +4,30 @@
 
 close all; clc; clearvars;
 %%
-%all the scripts assume that the Input and Output are allready created
+% all the scripts assume that the Input and Output  folders are already created
 % and contatins the required files
 %%
-%%%%%%%%%%%PART 1: Video Stabilization %%%%%%%%%%%%%%%
+%%%%%%%%%%% PART 1: Video Stabilization %%%%%%%%%%%%%%%
+close all; clc; clearvars;
 InputFile = 'INPUT.avi';
 StableVid = 'stabilized.avi';
-% stablizerParam.MinContrast=0.3;
-stablizerParam.MinQuality=0.2;
-cropParam.facor = 0.3;
+% the maximal distance between two points - for more jittery video use
+% higher value
+stablizerParam.MaxDistance = 3;
+stablizerParam.MinQuality = 0.2;
+stablizerParam.MinContrast = 0.1;
+% precentage from video borders to crop [0-1]-> 10% -100%
+cropParam.facor = 0.1;
 Stabilize(InputFile,StableVid,stablizerParam,cropParam);
 %%
-%%%%%%%%%%%PART 2: Background Subtraction %%%%%%%%%%%%%%%
+%%%%%%%%%%% PART 2: Background Subtraction %%%%%%%%%%%%%%%
 close all; clc; clearvars;
 StableVid = 'stabilized.avi';
 Binary = 'binary.avi';
 ExtractedVid = 'extracted.avi';
 BackgroundSubstract(StableVid,Binary,ExtractedVid);
 %%
-%%%%%%%%%%%PART 3: Matting %%%%%%%%%%%%%%%
+%%%%%%%%%%% PART 3: Matting %%%%%%%%%%%%%%%
 close all; clc; clearvars;
 backgroundImage = 'background.jpg';
 StableVid = 'stabilized.avi';
@@ -32,12 +37,14 @@ WidthOfNarrowBand = 3;
 
 Matting(StableVid, BinaryVid, backgroundImage, MattedVid, WidthOfNarrowBand)
 %%
-%%%%%%%%%%%PART 4: Tracking %%%%%%%%%%%%%%%
+%%%%%%%%%%% PART 4: Tracking %%%%%%%%%%%%%%%
 close all; clc; clearvars;
 MattedVid = 'matted.avi';
 outVid = 'output.avi';
 TrackParam.maxMovment = 3;
 TrackParam.Particals = 100;
+%is by any chance the object does not apper at the first frame choose the
+%first frame that the object appears in
 TrackParam.chooseRectFrame = 3;
 
 Tracker(MattedVid,outVid,TrackParam);
