@@ -13,9 +13,10 @@ InputFile = 'INPUT.avi';
 StableVid = 'stabilized.avi';
 % the maximal distance between two points - for more jittery video use
 % higher value
-stablizerParam.MaxDistance = 5;
-stablizerParam.MinQuality = 0.2;
-stablizerParam.MinContrast = 0.1;
+stablizerParam.MaxDistance = 1;
+stablizerParam.type = 'affine'; % 'affine' for less shaky 'similarity' for shaky video
+stablizerParam.MinQuality = 0.3;
+stablizerParam.MinContrast = 0.01;  % use below 0.1 value to get more points
 % precentage from video borders to crop [0-1]-> 10% -100%
 cropParam.facor = 0.1;
 Stabilize(InputFile,StableVid,stablizerParam,cropParam);
