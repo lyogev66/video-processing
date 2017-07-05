@@ -3,13 +3,13 @@ function [] = Stabilize(InputFile,StableVid,stablizerParam,cropParam)
 % remove comment for manual operation
 %clear;close all
 clc
-InputFile = 'INPUT.avi';
-StableVid = 'stabilized.avi';
-stablizerParam.MaxDistance = 5;
-stablizerParam.MinQuality = 0.3;
-stablizerParam.MinContrast = 0.01;  % use below 0.1 value to get more points
-stablizerParam.type = 'similarity'; % 'affine' for less shaky 'similarity' for shaky video
-cropParam.facor = 0.1;
+% InputFile = 'INPUT.avi';
+% StableVid = 'stabilized.avi';
+% stablizerParam.MaxDistance = 1;
+% stablizerParam.MinQuality = 0.3;  % use above 0.2
+% stablizerParam.MinContrast = 0.01;  % use below 0.1 value to get more points
+% stablizerParam.type = 'affine'; % 'affine' for less shaky 'similarity' for shaky video
+% cropParam.facor = 0.1;
 
 %open video
 hVideoSrc = VideoReader(sprintf('../Input/%s',InputFile));
@@ -109,27 +109,26 @@ function h =  myEstimateTransform(imgPrev,imgCurr,stablizerParam)
     %using detectMinEigenFeatures to detect features
 %     pointsA = detectMinEigenFeatures(imgA,'MinQuality',ptQualThresh);
 %     pointsB = detectMinEigenFeatures(imgB,'MinQuality',ptQualThresh); 
-    RansacIter = 2;
+    optimizeIter = 2;
     MinQuality = stablizerParam.MinQuality;
     MinContrast= stablizerParam.MinContrast;
     MaxDistance = stablizerParam.MaxDistance; 
     TransformType = stablizerParam.type;
     bestssd = inf;
     %using detectFASTFeatures to detect features
-    for ransac=1:RansacIter
-        MinQuality = MinQuality-0.1;
-    pointsA = detectFASTFeatures(imgPrev, 'MinQuality' ,MinQuality, 'MinContrast',MinContrast);
-    pointsB = detectFASTFeatures(imgCurr, 'MinQuality' ,MinQuality, 'MinContrast',MinContrast);
+    for optimize=1:optimizeIter
 
-    % Extract FREAK descriptors for the corners
-    [featuresA, pointsA] = extractFeatures(imgPrev, pointsA);
-    [featuresB, pointsB] = extractFeatures(imgCurr, pointsB);
+        pointsA = detectFASTFeatures(imgPrev, 'MinQuality' ,MinQuality, 'MinContrast',MinContrast);
+        pointsB = detectFASTFeatures(imgCurr, 'MinQuality' ,MinQuality, 'MinContrast',MinContrast);
 
-    indexPairs = matchFeatures(featuresA, featuresB);
-    pointsA = pointsA(indexPairs(:, 1), :);
-    pointsB = pointsB(indexPairs(:, 2), :);
-    %showMatchedFeatures(imgA, imgB, pointsA, pointsB);legend('A', 'B');
-    
+        % Extract FREAK descriptors for the corners
+        [featuresA, pointsA] = extractFeatures(imgPrev, pointsA);
+        [featuresB, pointsB] = extractFeatures(imgCurr, pointsB);
+
+        indexPairs = matchFeatures(featuresA, featuresB);
+        pointsA = pointsA(indexPairs(:, 1), :);
+        pointsB = pointsB(indexPairs(:, 2), :);
+        %figure;showMatchedFeatures(imgPrev, imgCurr, pointsA, pointsB);legend('A', 'B');
     
         [tform, ~, ~] = estimateGeometricTransform(...
         pointsB, pointsA, TransformType,'MaxNumTrials',3000,'MaxDistance',MaxDistance);
@@ -141,6 +140,8 @@ function h =  myEstimateTransform(imgPrev,imgCurr,stablizerParam)
          if bestssd > ssd
              bestTform = tform;
          end
+         % changing parameter for attempt of better results
+         MinQuality = MinQuality-0.05;
     end
 %     pointsBmp = transformPointsForward(tform, pointsBm.Location);
 %     showMatchedFeatures(imgA, imgBp, pointsAm, pointsBmp);
