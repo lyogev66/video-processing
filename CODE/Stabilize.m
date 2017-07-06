@@ -3,13 +3,14 @@ function [] = Stabilize(InputFile,StableVid,stablizerParam,cropParam)
 % remove comment for manual operation
 %clear;close all
 clc
-% InputFile = 'INPUT.avi';
-% StableVid = 'stabilized.avi';
-% stablizerParam.MaxDistance = 1;
-% stablizerParam.MinQuality = 0.3;  % use above 0.2
-% stablizerParam.MinContrast = 0.01;  % use below 0.1 value to get more points
-% stablizerParam.type = 'affine'; % 'affine' for less shaky 'similarity' for shaky video
-% cropParam.facor = 0.1;
+InputFile = 'INPUT.avi';
+StableVid = 'stabilized.avi';
+stablizerParam.MaxDistance = 1;
+stablizerParam.type = 'affine'; % 'affine' for less shaky 'similarity' for shaky video
+stablizerParam.MinQuality = 0.2;  % use arround 0.2
+stablizerParam.MinContrast = 0.05;  % use below 0.1 value to get more points
+% precentage from video borders to crop [0-1]-> 10% -100%
+cropParam.facor = 0.1;
 
 %open video
 hVideoSrc = VideoReader(sprintf('../Input/%s',InputFile));
@@ -115,6 +116,7 @@ function h =  myEstimateTransform(imgPrev,imgCurr,stablizerParam)
     MaxDistance = stablizerParam.MaxDistance; 
     TransformType = stablizerParam.type;
     bestssd = inf;
+    bestDist = inf;
     %using detectFASTFeatures to detect features
     for optimize=1:optimizeIter
 
@@ -128,24 +130,34 @@ function h =  myEstimateTransform(imgPrev,imgCurr,stablizerParam)
         indexPairs = matchFeatures(featuresA, featuresB);
         pointsA = pointsA(indexPairs(:, 1), :);
         pointsB = pointsB(indexPairs(:, 2), :);
+        %finding features point with smallest distance after match
+        dist = pointsA.Location-pointsB.Location;
+        totalDist = sum(sqrt(dist(:,1).^2+dist(:,2).^2));
+        if totalDist<bestDist
+            bestDist = totalDist;
+            bestPointsA = pointsA;
+            bestPointsB = pointsB;
+        end
+%         distance = sqrt((x2-x1)^2 + (y2-y1)^2);
+        %     imshow((imgCurr));hold on;pointsA.plot
         %figure;showMatchedFeatures(imgPrev, imgCurr, pointsA, pointsB);legend('A', 'B');
     
         [tform, ~, ~] = estimateGeometricTransform(...
-        pointsB, pointsA, TransformType,'MaxNumTrials',3000,'MaxDistance',MaxDistance);
+        bestPointsB, bestPointsA, TransformType,'MaxNumTrials',3000,'MaxDistance',MaxDistance);
     %     [tform, pointsBm, pointsAm] = estimateGeometricTransform(...
     %     pointsB, pointsA, 'affine');
-         imgCurrWarped = imwarp(imgCurr, tform, 'OutputView', imref2d(size(imgCurr)));
-         X = imgCurrWarped - imgPrev;
-         ssd = sum(X(:).^2);
-         if bestssd > ssd
-             bestTform = tform;
-         end
+%          imgCurrWarped = imwarp(imgCurr, tform, 'OutputView', imref2d(size(imgCurr)));
+%          X = imgCurrWarped - imgPrev;
+%          ssd = sum(X(:).^2);
+%          if bestssd > ssd
+%              bestTform = tform;
+%          end
          % changing parameter for attempt of better results
          MinQuality = MinQuality-0.05;
     end
 %     pointsBmp = transformPointsForward(tform, pointsBm.Location);
 %     showMatchedFeatures(imgA, imgBp, pointsAm, pointsBmp);
-    h = bestTform.T;
+    h = tform.T;
 end
 %%
 function tformSRT=TformToSRT(H)
