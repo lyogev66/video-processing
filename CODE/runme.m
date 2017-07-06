@@ -15,18 +15,21 @@ StableVid = 'stabilized.avi';
 % higher value
 stablizerParam.MaxDistance = 1;
 stablizerParam.type = 'affine'; % 'affine' for less shaky 'similarity' for shaky video
-stablizerParam.MinQuality = 0.3;
+stablizerParam.MinQuality = 0.2;  % use arround 0.2
 stablizerParam.MinContrast = 0.01;  % use below 0.1 value to get more points
 % precentage from video borders to crop [0-1]-> 10% -100%
 cropParam.facor = 0.1;
 Stabilize(InputFile,StableVid,stablizerParam,cropParam);
+
+
 %%
 %%%%%%%%%%% PART 2: Background Subtraction %%%%%%%%%%%%%%%
 close all; clc; clearvars;
 StableVid = 'stabilized.avi';
 Binary = 'binary.avi';
 ExtractedVid = 'extracted.avi';
-BackgroundSubstract(StableVid,Binary,ExtractedVid);
+BackgroundSubstract(StableVid,Binary)
+% BackgroundSubstract(StableVid,Binary,ExtractedVid);
 %%
 %%%%%%%%%%% PART 3: Matting %%%%%%%%%%%%%%%
 close all; clc; clearvars;
@@ -54,6 +57,6 @@ TrackParam.maxMovment = 30;
 TrackParam.Particals = 100;
 %is by any chance the object does not apper at the first frame choose the
 %first frame that the object appears in
-TrackParam.chooseRectFrame = 3;
+TrackParam.chooseRectFrame = 5;
 
 Tracker(MattedVid,outVid,TrackParam);

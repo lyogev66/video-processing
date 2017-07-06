@@ -1,15 +1,5 @@
 function Matting(StableVid, ExtractedVid, backgroundImage, Output, WidthOfNarrowBand)
-% Functionality:
-%   The function mats the object and the supplied background.
-% Arguments:
-%   Input                   -   The video after stabilization.
-%   InputBinary             -   Binary video after background subtraction.
-%   InputBackground         -   New background for the video. 
-%   Output                  -   Output file name (the matted video).
-%   WidthOfNarrowBand       -   Width for the narrow band.  
-% Output:
-%   The video after matting (combining the object and the new background) named 'matted.avi'.
-%   
+
 % backgroundImage = 'background.jpg';
 % StableVid = 'stabilized.avi';
 % ExtractedVid = 'binary.avi';

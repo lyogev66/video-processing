@@ -3,13 +3,13 @@ function [] = Stabilize(InputFile,StableVid,stablizerParam,cropParam)
 % remove comment for manual operation
 %clear;close all
 clc
-% InputFile = 'INPUT.avi';
-% StableVid = 'stabilized.avi';
-% stablizerParam.MaxDistance = 1;
-% stablizerParam.MinQuality = 0.3;
-% stablizerParam.MinContrast = 0.01;  % use below 0.1 value to get more points
-% stablizerParam.type = 'affine'; % 'affine' for less shaky 'similarity' for shaky video
-% cropParam.facor = 0.1;
+InputFile = 'INPUT.avi';
+StableVid = 'stabilized.avi';
+stablizerParam.MaxDistance = 1;
+stablizerParam.MinQuality = 0.3;  % use above 0.1
+stablizerParam.MinContrast = 0.01;  % use below 0.1 value to get more points
+stablizerParam.type = 'affine'; % 'affine' for less shaky 'similarity' for shaky video
+cropParam.facor = 0.1;
 
 %open video
 hVideoSrc = VideoReader(sprintf('../Input/%s',InputFile));
@@ -80,7 +80,8 @@ function DBout=Stablizing(dataBase,NumberOfFrames,stablizerParam)
 DBout = cell(3,NumberOfFrames);
 
     %get first frame - assuming first frame the anchor point.
-    imgPrev = rgb2gray(dataBase{1});
+    imgPrev = medfilt2(rgb2gray(dataBase{1}));
+    
     imgCurr = imgPrev;
     %write it as is
     DBout{1} = (dataBase{1});
@@ -90,7 +91,7 @@ DBout = cell(3,NumberOfFrames);
     for FrameCount=2:NumberOfFrames
         waitbar(FrameCount/NumberOfFrames, wbar);
         imgPrev = imgCurr;
-        imgCurr = rgb2gray(dataBase{FrameCount}); % Read frame into imgB
+        imgCurr = medfilt2(rgb2gray(dataBase{FrameCount})); % Read frame into imgB
         H = myEstimateTransform(imgPrev,imgCurr,stablizerParam); 
         HSRT = TformToSRT(H);
         Hcumulative = HSRT.T * Hcumulative;      
@@ -104,39 +105,48 @@ DBout = cell(3,NumberOfFrames);
 end
 
 %%
-function h =  myEstimateTransform(imgA,imgB,stablizerParam)
+function h =  myEstimateTransform(imgPrev,imgCurr,stablizerParam)
 
     %using detectMinEigenFeatures to detect features
 %     pointsA = detectMinEigenFeatures(imgA,'MinQuality',ptQualThresh);
 %     pointsB = detectMinEigenFeatures(imgB,'MinQuality',ptQualThresh); 
-    RansacIter = 2;
+    optimizeIter = 1;
     MinQuality = stablizerParam.MinQuality;
     MinContrast= stablizerParam.MinContrast;
     MaxDistance = stablizerParam.MaxDistance; 
     TransformType = stablizerParam.type;
+    bestssd = inf;
     %using detectFASTFeatures to detect features
-    pointsA = detectFASTFeatures(imgA, 'MinQuality' ,MinQuality, 'MinContrast',MinContrast);
-    pointsB = detectFASTFeatures(imgB, 'MinQuality' ,MinQuality, 'MinContrast',MinContrast);
+    for optimize=1:optimizeIter
 
-    % Extract FREAK descriptors for the corners
-    [featuresA, pointsA] = extractFeatures(imgA, pointsA);
-    [featuresB, pointsB] = extractFeatures(imgB, pointsB);
+        pointsA = detectFASTFeatures(imgPrev, 'MinQuality' ,MinQuality, 'MinContrast',MinContrast);
+        pointsB = detectFASTFeatures(imgCurr, 'MinQuality' ,MinQuality, 'MinContrast',MinContrast);
 
-    indexPairs = matchFeatures(featuresA, featuresB);
-    pointsA = pointsA(indexPairs(:, 1), :);
-    pointsB = pointsB(indexPairs(:, 2), :);
-    %showMatchedFeatures(imgA, imgB, pointsA, pointsB);legend('A', 'B');
-    for ransac=1:RansacIter
+        % Extract FREAK descriptors for the corners
+        [featuresA, pointsA] = extractFeatures(imgPrev, pointsA);
+        [featuresB, pointsB] = extractFeatures(imgCurr, pointsB);
+
+        indexPairs = matchFeatures(featuresA, featuresB);
+        pointsA = pointsA(indexPairs(:, 1), :);
+        pointsB = pointsB(indexPairs(:, 2), :);
+        %figure;showMatchedFeatures(imgPrev, imgCurr, pointsA, pointsB);legend('A', 'B');
+    
         [tform, ~, ~] = estimateGeometricTransform(...
         pointsB, pointsA, TransformType,'MaxNumTrials',3000,'MaxDistance',MaxDistance);
     %     [tform, pointsBm, pointsAm] = estimateGeometricTransform(...
     %     pointsB, pointsA, 'affine');
-         imgBp = imwarp(imgB, tform, 'OutputView', imref2d(size(imgB)));
-         sum(sum
+         imgCurrWarped = imwarp(imgCurr, tform, 'OutputView', imref2d(size(imgCurr)));
+         X = imgCurrWarped - imgPrev;
+         ssd = sum(X(:).^2);
+         if bestssd > ssd
+             bestTform = tform;
+         end
+         % changing parameter for attempt of better results
+         MinQuality = MinQuality-0.05;
     end
 %     pointsBmp = transformPointsForward(tform, pointsBm.Location);
 %     showMatchedFeatures(imgA, imgBp, pointsAm, pointsBmp);
-    h = tform.T;
+    h = bestTform.T;
 end
 %%
 function tformSRT=TformToSRT(H)

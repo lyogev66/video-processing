@@ -10,9 +10,9 @@ mattedfile = 'matted.avi';
 outfile = 'output.avi';
 % 
 % % SET NUMBER OF PARTICLES
-TrackParam.maxMovment = 30;
-TrackParam.Particals = 100;
-TrackParam.chooseRectFrame = 3;
+% TrackParam.maxMovment = 30;
+% TrackParam.Particals = 100;
+% TrackParam.chooseRectFrame = 3;
 % initial Position
 % position = [106.0000  188.0000   28.0000   75.0000];
 % manualSelect=false;

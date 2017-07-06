@@ -9,7 +9,7 @@ if ~isempty(AvgPartical)
     Yll=max(AvgPartical(2)-AvgPartical(4),1);
     Xll=max(AvgPartical(1)-AvgPartical(3),1);
     greenRect=[Xll,Yll,(2*AvgPartical(3)),(2*AvgPartical(4))];    %[X,Y width,height]
-    imgOut = insertShape(I,'Rectangle',greenRect,'Color','green');
+    imgOut = insertShape(I,'Rectangle',greenRect,'Color','red');
     %excluding the Max Partical due to it's jitter
 %     maxWight= max(W)==W;
 %     MaxPartical=S(:,maxWight);    
