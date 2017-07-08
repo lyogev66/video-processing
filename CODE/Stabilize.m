@@ -6,9 +6,9 @@ clc
 InputFile = 'INPUT.avi';
 StableVid = 'stabilized.avi';
 stablizerParam.MaxDistance = 1;
-stablizerParam.type = 'affine'; % 'affine' for less shaky 'similarity' for shaky video
-stablizerParam.MinQuality = 0.2;  % use arround 0.2
-stablizerParam.MinContrast = 0.05;  % use below 0.1 value to get more points
+stablizerParam.type = 'similarity'; % 'affine' for less shaky 'similarity' for shaky video
+stablizerParam.MinQuality = 0.3;  % use arround 0.2
+stablizerParam.MinContrast = 0.1;  % use below 0.1 value to get more points
 % precentage from video borders to crop [0-1]-> 10% -100%
 cropParam.facor = 0.1;
 
@@ -110,12 +110,12 @@ function h =  myEstimateTransform(imgPrev,imgCurr,stablizerParam)
     %using detectMinEigenFeatures to detect features
 %     pointsA = detectMinEigenFeatures(imgA,'MinQuality',ptQualThresh);
 %     pointsB = detectMinEigenFeatures(imgB,'MinQuality',ptQualThresh); 
-    optimizeIter = 2;
+    optimizeIter = 3;
     MinQuality = stablizerParam.MinQuality;
     MinContrast= stablizerParam.MinContrast;
     MaxDistance = stablizerParam.MaxDistance; 
     TransformType = stablizerParam.type;
-    bestssd = inf;
+%     bestssd = inf;
     bestDist = inf;
     %using detectFASTFeatures to detect features
     for optimize=1:optimizeIter
@@ -124,8 +124,8 @@ function h =  myEstimateTransform(imgPrev,imgCurr,stablizerParam)
         pointsB = detectFASTFeatures(imgCurr, 'MinQuality' ,MinQuality, 'MinContrast',MinContrast);
 
         % Extract FREAK descriptors for the corners
-        [featuresA, pointsA] = extractFeatures(imgPrev, pointsA);
-        [featuresB, pointsB] = extractFeatures(imgCurr, pointsB);
+        [featuresA, pointsA] = extractFeatures(imgPrev, pointsA.selectStrongest(50));
+        [featuresB, pointsB] = extractFeatures(imgCurr, pointsB.selectStrongest(50));
 
         indexPairs = matchFeatures(featuresA, featuresB);
         pointsA = pointsA(indexPairs(:, 1), :);
