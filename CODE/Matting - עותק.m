@@ -6,7 +6,6 @@ BinaryVid = 'binary.avi';
 Output = 'matted.avi';
 WidthOfNarrowBand = 3;
 SElement = strel('disk', WidthOfNarrowBand);
-SElementBoarder = strel('disk', 3*WidthOfNarrowBand);
 factor = 1; %addtional factor for background vs foreground
 
 % Creating I/O objects & Initializing parameters:
@@ -57,18 +56,16 @@ for FrameCount=1:NumberOfFrames
     PerimiterDilated = double(imdilate(Perimiter, SElement));
     trimap = double(BinImage); trimap(PerimiterDilated==1) =0.5;
     
-    InsideBordrer = BinImage - imerode(imerode(BinImage,SElementBoarder),SElementBoarder);
-    InsideBordrer(InsideBordrer == PerimiterDilated) = 0;
+    InsideBordrer = BinImage - imerode(BinImage,SElement);
 %     ;InsideBordrer(imerode(Outside,SElement)==1) = 0;InsideBordrer(Perimiter==1) = 0.5;
-    OutsideBorder = imdilate(BinImage,SElementBoarder) - BinImage;
-    OutsideBorder(PerimiterDilated==1) = 0;
+    OutsideBorder = imdilate(BinImage,SElement) - BinImage;
 %     PerimiterDilated;OutsideBorder(imerode(Inside,SElement)==1) = 0;OutsideBorder(Perimiter==1) = 0.5;
 %     imshowpair(InsideBordrer,OutsideBorder,'montage')
     
     % getting the value of the inside and outside pixels and calculating
     % their KDE
-    InsideValues = CurrFrameGray(InsideBordrer==1);
-    OutsideValues = CurrFrameGray(OutsideBorder==1);
+    InsideValues = CurrFrameRGB(InsideBordrer==1);
+    OutsideValues = CurrFrameRGB(OutsideBorder==1);
     
     % getting a mapping of 256 bins to convert the values later on
     [~,ProbMapIn,~,~] = kde(InsideValues,256,0,255);
@@ -99,12 +96,11 @@ for FrameCount=1:NumberOfFrames
 %     imshow(Wb,[])
     
     alpha = (factor * Wf./(factor * Wf+Wb));
-    alpha = alpha/max(max(alpha));
 %     imshow(alpha)
     % merging the backgound and the frame
-    fix = ones(size(trimap));
-    fix(trimap ==1) =0;fix(trimap ==0) =0;
-    trimap(fix ==1 ) = alpha(fix ==1);
+    fixarea = imdilate(trimap == 0.5,SElement);
+    trimap(fixarea ==1 ) = alpha(fixarea ==1);
+    
 %     imshow(trimap);
 
     % blending
@@ -124,7 +120,7 @@ for FrameCount=1:NumberOfFrames
     MattedFrame(MattedFrame>1)=1;MattedFrame(MattedFrame<0)=0;
 
     writeVideo(hVideoOut, MattedFrame);
-%      imshow(MattedFrame)
+%     imshow(MattedFrame)
 end
 
 close(hVideoOut);

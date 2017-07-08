@@ -15,8 +15,8 @@ StableVid = 'stabilized.avi';
 % higher value
 stablizerParam.MaxDistance = 1;
 stablizerParam.type = 'similarity'; % 'affine' for less shaky 'similarity' for shaky video
-stablizerParam.MinQuality = 0.2;  % use arround 0.2
-stablizerParam.MinContrast = 0.01;  % use below 0.1 value to get more points
+stablizerParam.MinQuality = 0.3;  % use arround 0.2
+stablizerParam.MinContrast = 0.1;  % use below 0.1 value to get more points
 % precentage from video borders to crop [0-1]-> 10% -100%
 cropParam.facor = 0.1;
 Stabilize(InputFile,StableVid,stablizerParam,cropParam);
@@ -26,25 +26,26 @@ Stabilize(InputFile,StableVid,stablizerParam,cropParam);
 %%
 %%%%%%%%%%% PART 2: Background Subtraction %%%%%%%%%%%%%%%
 close all; clearvars;
-StableVid = 'stabilized.avi';
-Binary = 'binary.avi';
+BGSubParam.grayThresh = 0.15;
+BGSubParam.maxApproxFigureArea = 12000;
+BGSubParam.minApproxFigureArea = 1000;
+BGSubParam.AreYouFeelingLucky = 1;
+BGSubParam.MaxMinAreaDelta = 1500;
+BGSubParam.numOfSmoothItr = 1;
+stbaleVid = 'stabilized.avi';
+binaryVid = 'binary.avi';
 ExtractedVid = 'extracted.avi';
-BackgroundSubstract(StableVid,Binary)
+BackgroundSubstract(stbaleVid,binaryVid,ExtractedVid,BGSubParam)
 % BackgroundSubstract(StableVid,Binary,ExtractedVid);
 %%
 %%%%%%%%%%% PART 3: Matting %%%%%%%%%%%%%%%
 close all; clearvars;
-% backgroundImage = 'background.jpg';
-% StableVid = 'stabilized.avi';
-% BinaryVid = 'binary.avi';
-% MattedVid = 'matted.avi';
-% WidthOfNarrowBand = 3;
 
 backgroundImage = 'background.jpg';
 StableVid = 'stabilized.avi';
 BinaryVid = 'binary.avi';
 MattedVid = 'matted.avi';
-WidthOfNarrowBand = 3;
+WidthOfNarrowBand = 1;
 factor = 1; %addtional factor for background vs foreground
 
 

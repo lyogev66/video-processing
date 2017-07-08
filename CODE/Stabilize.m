@@ -124,8 +124,8 @@ function h =  myEstimateTransform(imgPrev,imgCurr,stablizerParam)
         pointsB = detectFASTFeatures(imgCurr, 'MinQuality' ,MinQuality, 'MinContrast',MinContrast);
 
         % Extract FREAK descriptors for the corners
-        [featuresA, pointsA] = extractFeatures(imgPrev, pointsA.selectStrongest(50));
-        [featuresB, pointsB] = extractFeatures(imgCurr, pointsB.selectStrongest(50));
+        [featuresA, pointsA] = extractFeatures(imgPrev, pointsA);
+        [featuresB, pointsB] = extractFeatures(imgCurr, pointsB);
 
         indexPairs = matchFeatures(featuresA, featuresB);
         pointsA = pointsA(indexPairs(:, 1), :);
